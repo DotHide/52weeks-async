@@ -1,0 +1,27 @@
+{
+  "name": "52weeks-async",
+  "version": "1.0.0",
+  "description": "52 Weeks play 52 node packages | Async",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DotHide/52weeks-async.git"
+  },
+  "keywords": [
+    "async",
+    "node",
+    "npm"
+  ],
+  "author": "Jack Zhang <dothide@gmail.com> (https://github.com/DotHide)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DotHide/52weeks-async/issues"
+  },
+  "homepage": "https://github.com/DotHide/52weeks-async#readme",
+  "devDependencies": {
+    "async": "1.5.2"
+  }
+}
