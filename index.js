@@ -58,6 +58,7 @@ var c = function(callback) {
   });
 }
 
+// async.series
 var d = function() {
   var start = present();
   async.series([
@@ -71,6 +72,7 @@ var d = function() {
     });
 }
 
+// async.parallel
 var e = function() {
   var start = present();
   async.parallel([
@@ -84,4 +86,5 @@ var e = function() {
     });
 }
 
+// d();
 e();
