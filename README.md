@@ -64,6 +64,8 @@ Async 主要方法有 3 大类（集合、流程控制、工具集），提供�
 #### each
 `each` 顾名思义就是每个，就是把一个集合中的每个元素都做一次操作，由于我们玩的是异步工具，因此它允许每个元素同时做操作，做的最快的最先完成，整个集合操作的时间取决于时间最慢的那个元素的操作。我们来举一个访问网址的例子：
 
+> 用到了两个必要组件 `node-fetch` 和 `present` 分别用来获取网页和计算运行时间
+
 ```js
 var fetch = require('node-fetch');
 var present = require('present');
@@ -91,14 +93,13 @@ var fetchUrls = function(url, callback) {
   });
 }
 
-var a = function(callback) {
+var a = function() {
   var start = present();
   // 并行执行访问网址操作，执行顺序不保证
   async.each(urls, fetchUrls, function(err) {
     var end = present();
     if (err) { console.log('xxx> Error: ', err); }
     console.log('===> each Finished.', (end - start).toFixed(2) + 'ms');
-    callback();
   });
 }
 
@@ -113,3 +114,159 @@ a();
  * ===> each Finished. 1676.90ms
 */
 ```
+
+我们发现他的输出顺序与我们数组原始循序不一致，那是因为 each 不保证顺序，每个元素就像是赛跑一样，大家同时起跑，谁快谁就排第一。最后的完成时间，也反应出它只跟跑得最慢的那个有关，至于为什么时间不等于跑的最慢的那个呢？我的理解是裁判统计时间需要花时间吧，也就是说 `each` 这个方法本身的运算也需要一定的时间。
+
+接着我们来看它的两个扩展方法，`eachSeries` 和 `eachLimit` ，正如前面提到的，Series 是强制串行处理，就是把原来一起跑变成一个一个跑，Limit 则是限制一次跑的人数，比如3个人一跑，因此它需要额外的传一个上限值参数。下面我们分别来看下：
+
+```js
+...
+var b = function() {
+  var start = present();
+  // 串行执行访问网址操作，执行顺序依据数组元素顺序
+  async.eachSeries(urls, fetchUrls, function(err) {
+    var end = present();
+    if (err) { console.log('xxx> Error: ', err); }
+    console.log('===> eachSeries Finished.', (end - start).toFixed(2) + 'ms');
+  });
+}
+
+b();
+
+/* 输出结果
+ * ===> Reached:  http://www.qq.com OK 755.59ms
+ * ===> Reached:  https://github.com OK 2121.04ms
+ * ===> Reached:  https://www.baidu.com OK 262.49ms
+ * ===> Reached:  https://www.google.com.hk OK 279.92ms
+ * ===> Reached:  https://nodejs.org/en/ OK 242.90ms
+ * ===> eachSeries Finished. 3663.89ms
+*/
+```
+
+此时我们可以看到，它的输出顺序与数组的元素顺序是一致的，且它整个过程的耗时应该等于每个元素所花时间的总和，并加上自身的运行时间。
+
+```js
+...
+var c = function() {
+  var start = present();
+  // 并行执行访问网址操作，但限制最多同时执行 3 个，同样不保证执行顺序
+  console.time('eachLimit');
+  async.eachLimit(urls, 3, fetchUrls, function(err) {
+    var end = present();
+    if (err) { console.log('xxx> Error: ', err); }
+    console.log('===> eachLimit Finished.', (end - start).toFixed(2) + 'ms');
+  });
+}
+
+c();
+
+/* 输出结果
+ * ===> Reached:  http://www.qq.com OK 209.35ms
+ * ===> Reached:  https://www.baidu.com OK 222.55ms
+ * ===> Reached:  https://nodejs.org/en/ OK 143.33ms
+ * ===> Reached:  https://www.google.com.hk OK 204.14ms
+ * ===> Reached:  https://github.com OK 1009.46ms
+ * ===> eachLimit Finished. 1010.35ms
+*/
+```
+
+可以看出，它相当于随机的分组赛跑，第 1 组跑完了再跑第 2 组，它的整个过程耗时应该等于每组最慢的时间相加，再加上自身运行时间的总和。
+
+其实到这里进一步观察可以发现，`eachSeries` 方法就相当于 `eachLimit` 方法的 limit 值设置为 1 的情况；`each` 则是 limit 值设为数组的长度或者无穷大（Infinity）。
+
+接下来说下其他的一些集合方法，在我看来其他的方法无非是 `each` 的一种变体，只是侧重点不一样罢了。
+##### forEachOf
+跟 `each` 几乎一样，唯一的不同在于它支持的是对象，它能遍历对象的所有属性，并能获取每个属性的key和value。
+##### map
+如果说 `each` 看重的是过程，那 `map` 看重的就是结果。`each` 只是预览版，`map` 才是最终版。`map` 可以返回每个元素处理后结果的集合。
+##### filter
+俗称过筛子，留下需要的元素。须注意的是：此时 `callback` 只能接受 true 或者 false
+##### reject
+反过来过筛子，剔除不要的元素。须注意的是：此时 `callback` 只能接受 true 或者 false
+...
+
+#### series
+串行执行，对每个任务函数进行串行的执行，每个任务都需要等到上一个完成后才开始执行，有点像接力赛，一个接一个，任何一个跑失败了就终止，然后 callback 马上抛出错误。如果全都顺利跑完，callback 就在完成时输出所有结果。就拿上面的任务来举例吧，a b c 三个函数作为三个任务：
+```js
+...
+var d = function() {
+  var start = present();
+  async.series([
+      a,
+      b,
+      c
+    ],
+    function(err, results) {
+      var end = present();
+      console.log('Total: ', (end - start).toFixed(2) + 'ms');
+    });
+}
+
+d();
+
+/* 输出结果
+ * ===> Reached:  https://www.baidu.com OK 366.60ms
+ * ===> Reached:  https://nodejs.org/en/ OK 376.16ms
+ * ===> Reached:  https://www.google.com.hk OK 384.39ms
+ * ===> Reached:  https://github.com OK 1395.95ms
+ * ===> Reached:  http://www.qq.com OK 1473.65ms
+ * ===> each Finished. 1474.15ms
+ * ===> Reached:  http://www.qq.com OK 250.59ms
+ * ===> Reached:  https://github.com OK 921.96ms
+ * ===> Reached:  https://www.baidu.com OK 221.75ms
+ * ===> Reached:  https://www.google.com.hk OK 200.53ms
+ * ===> Reached:  https://nodejs.org/en/ OK 146.65ms
+ * ===> eachSeries Finished. 1742.10ms
+ * ===> Reached:  http://www.qq.com OK 150.28ms
+ * ===> Reached:  https://www.baidu.com OK 216.38ms
+ * ===> Reached:  https://www.google.com.hk OK 192.21ms
+ * ===> Reached:  https://nodejs.org/en/ OK 151.59ms
+ * ===> Reached:  https://github.com OK 973.34ms
+ * ===> eachLimit Finished. 974.30ms
+ * Total:  4192.51ms
+*/
+```
+
+#### parallel
+并行执行，所有任务一起跑。
+```js
+...
+var e = function() {
+  var start = present();
+  async.parallel([
+      a,
+      b,
+      c
+    ],
+    function(err, results) {
+      var end = present();
+      console.log('Total: ', (end - start).toFixed(2) + 'ms');
+    });
+}
+
+e();
+
+/* 输出结果
+ * ===> Reached:  http://www.qq.com OK 188.40ms
+ * ===> Reached:  http://www.qq.com OK 225.51ms
+ * ===> Reached:  http://www.qq.com OK 256.70ms
+ * ===> Reached:  https://www.google.com.hk OK 314.46ms
+ * ===> Reached:  https://nodejs.org/en/ OK 334.17ms
+ * ===> Reached:  https://www.baidu.com OK 431.10ms
+ * ===> Reached:  https://www.baidu.com OK 448.82ms
+ * ===> Reached:  https://www.google.com.hk OK 243.98ms
+ * ===> Reached:  https://nodejs.org/en/ OK 281.63ms
+ * ===> Reached:  https://github.com OK 1451.68ms
+ * ===> each Finished. 1464.44ms
+ * ===> Reached:  https://github.com OK 1452.40ms
+ * ===> eachLimit Finished. 1457.35ms
+ * ===> Reached:  https://github.com OK 1284.20ms
+ * ===> Reached:  https://www.baidu.com OK 217.83ms
+ * ===> Reached:  https://www.google.com.hk OK 216.63ms
+ * ===> Reached:  https://nodejs.org/en/ OK 224.90ms
+ * ===> eachSeries Finished. 2133.25ms
+ * Total:  2165.98ms
+*/
+```
+
+很显然，并行要比串行快不少吧 +_+

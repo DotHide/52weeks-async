@@ -31,7 +31,7 @@ var a = function(callback) {
     var end = present();
     if (err) { console.log('xxx> Error: ', err); }
     console.log('===> each Finished.', (end - start).toFixed(2) + 'ms');
-    callback(null, 'each: ' + (end - start).toFixed(2) + 'ms');
+    callback();
   });
 }
 
@@ -42,35 +42,46 @@ var b = function(callback) {
     var end = present();
     if (err) { console.log('xxx> Error: ', err); }
     console.log('===> eachSeries Finished.', (end - start).toFixed(2) + 'ms');
-    callback(null, 'eachSeries:' + (end - start).toFixed(2) + 'ms');
+    callback();
   });
 }
 
 var c = function(callback) {
   var start = present();
-  // 并行执行访问网址操作，但限制最多同时执行 2 个，同样不保证执行顺序
+  // 并行执行访问网址操作，但限制最多同时执行 3 个，同样不保证执行顺序
   console.time('eachLimit');
   async.eachLimit(urls, 3, fetchUrls, function(err) {
     var end = present();
     if (err) { console.log('xxx> Error: ', err); }
     console.log('===> eachLimit Finished.', (end - start).toFixed(2) + 'ms');
-    callback(null, 'eachLimit:' + (end - start).toFixed(2) + 'ms');
+    callback();
   });
 }
 
-var d = function(callback) {
+var d = function() {
   var start = present();
   async.series([
       a,
       b,
       c
     ],
-    // optional callback
     function(err, results) {
-      // results is now equal to ['one', 'two']
       var end = present();
       console.log('Total: ', (end - start).toFixed(2) + 'ms');
     });
 }
 
-d();
+var e = function() {
+  var start = present();
+  async.parallel([
+      a,
+      b,
+      c
+    ],
+    function(err, results) {
+      var end = present();
+      console.log('Total: ', (end - start).toFixed(2) + 'ms');
+    });
+}
+
+e();
