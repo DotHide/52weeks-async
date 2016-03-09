@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/DotHide/52weeks-async#readme",
   "devDependencies": {
-    "async": "1.5.2"
+    "async": "1.5.2",
+    "present": "0.0.6"
   }
 }
