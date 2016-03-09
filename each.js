@@ -30,7 +30,7 @@ var a = function(callback) {
   async.each(urls, fetchUrls, function(err) {
     var end = present();
     if (err) { console.log('xxx> Error: ', err); }
-    console.log('===> each Finished.');
+    console.log('===> each Finished.', (end - start).toFixed(2) + 'ms');
     callback(null, 'each: ' + (end - start).toFixed(2) + 'ms');
   });
 }
@@ -41,7 +41,7 @@ var b = function(callback) {
   async.eachSeries(urls, fetchUrls, function(err) {
     var end = present();
     if (err) { console.log('xxx> Error: ', err); }
-    console.log('===> eachSeries Finished.');
+    console.log('===> eachSeries Finished.', (end - start).toFixed(2) + 'ms');
     callback(null, 'eachSeries:' + (end - start).toFixed(2) + 'ms');
   });
 }
@@ -53,7 +53,7 @@ var c = function(callback) {
   async.eachLimit(urls, 3, fetchUrls, function(err) {
     var end = present();
     if (err) { console.log('xxx> Error: ', err); }
-    console.log('===> eachLimit Finished.');
+    console.log('===> eachLimit Finished.', (end - start).toFixed(2) + 'ms');
     callback(null, 'eachLimit:' + (end - start).toFixed(2) + 'ms');
   });
 }
@@ -69,7 +69,6 @@ var d = function(callback) {
     function(err, results) {
       // results is now equal to ['one', 'two']
       var end = present();
-      console.log('result: ', results);
       console.log('Total: ', (end - start).toFixed(2) + 'ms');
     });
 }

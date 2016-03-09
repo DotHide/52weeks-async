@@ -10,8 +10,8 @@ Async 主要方法有 3 大类（集合、流程控制、工具集），提供�
 
 其中一些方法可以根据以下形式得到扩展方法
 
-- <name\>Series：如 each，可以在后面直接加 Series，变为 eachSeries 方法，这样的方法每次同时只执行一个异步操作，在集合操作中较多；
-- <name\>Limit：如 eachLimit，它表示给每次同时执行异步操作设定一个次数的上限
+- <name\>**S**eries：如 each，可以在后面直接加 Series，变为 eachSeries 方法，这样的方法每次同时只执行一个异步操作，在集合操作中较多；
+- <name\>**L**imit：如 eachLimit，它表示给每次同时执行异步操作设定一个次数的上限
 
 #### 集合操作（Collections）
 - `each` **SL**
@@ -57,3 +57,58 @@ Async 主要方法有 3 大类（集合、流程控制、工具集），提供�
 - `dir`
 - `noConflict`
 
+### 玩转 Async
+接下来，我将从这些方法中挑选一些出来，作为娱乐和分析，限于篇幅不宜过长，我尽可能挑选具有代表性的方法，其他方法其实就是某些方法的变种。首先，我们现来玩 `each` 。
+
+#### each
+`each` 顾名思义就是每个，就是把一个集合中的每个元素都做一次操作，由于我们玩的是异步工具，因此它允许每个元素同时做操作，做的最快的最先完成，整个集合操作的时间取决于时间最慢的那个元素的操作。我们来举一个访问网址的例子：
+
+```js
+var fetch = require('node-fetch');
+var present = require('present');
+var async = require('async');
+
+var urls = [
+  'http://www.qq.com',
+  'https://github.com',
+  'https://www.baidu.com',
+  'https://www.google.com.hk',
+  'https://nodejs.org/en/'
+];
+
+// 访问网址（3秒超时）
+var fetchUrls = function(url, callback) {
+  var start = present();
+  return fetch(url, {
+    timeout: 3000
+  }).then(function(res) {
+    var end = present();
+    console.log('===> Reached: ', url, res.statusText, (end - start).toFixed(2) + 'ms');
+    callback();
+  }).catch(function(err) {
+    callback(err);
+  });
+}
+
+var a = function(callback) {
+  var start = present();
+  // 并行执行访问网址操作，执行顺序不保证
+  async.each(urls, fetchUrls, function(err) {
+    var end = present();
+    if (err) { console.log('xxx> Error: ', err); }
+    console.log('===> each Finished.', (end - start).toFixed(2) + 'ms');
+    callback();
+  });
+}
+
+a();
+
+/* 输出结果
+ * ===> Reached:  http://www.qq.com OK 289.21ms
+ * ===> Reached:  https://nodejs.org/en/ OK 326.42ms
+ * ===> Reached:  https://www.google.com.hk OK 435.10ms
+ * ===> Reached:  https://www.baidu.com OK 467.60ms
+ * ===> Reached:  https://github.com OK 1666.13ms
+ * ===> each Finished. 1676.90ms
+*/
+```
