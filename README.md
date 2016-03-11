@@ -1,5 +1,7 @@
-# 52 Weeks play 52 node packages | Async
-🙊 52 周玩转 52 个 Node 基础包 丨 Async 篇
+## 52 周玩转 52 Node 包 丨 async
+🙊 [查看全部计划](/blob/master/PLAN.md)
+
+**第 01 周（2016.03.07）** [async](https://www.npmjs.com/package/async) 篇
 
 ### Async 简介
 > 引用官方的话：Async 是一个工具模块，用于为异步的 Javascript 提供爽滑干脆的方法集。尽管最初被设计用于 Node 服务端，但它也可以直接在浏览器中运行。
