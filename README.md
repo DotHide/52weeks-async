@@ -287,4 +287,111 @@ e();
 跟上面一样，上面是当什么时候怎么样，until 是先做一遍再判断。
 
 #### waterfall
-名字很美，其实就是串行的变种，就是前一个做完了将结果交给后面一个，适用于标准化的渐进流程。
+名字很美，其实就是串行的变种，就是前一个做完了将结果交给后面一个，适用于标准化的渐进流程。需要注意的是，waterfall 的第一个 function 的第一个参数必须传 callback。例如：
+
+```js
+...
+// 第一个方法的第一个 callback 必须传 callback
+var f = function(callback) {
+  callback(null, 1 + 1);
+}
+
+var g = function(n, callback) {
+  callback(null, n * 2);
+}
+
+var h = function(n, callback) {
+  callback(null, n - 2);
+}
+
+var i = function() {
+  async.waterfall([f, g, h],
+    function(err, result) {
+      console.log('result: ', result);
+    });
+}
+
+i(); // result: 2
+```
+
+如果你必须要在第一个 function 传参的话，只能这样使用：
+
+```js
+...
+var f = function(n, callback) {
+  callback(null, n + 1);
+}
+
+var g = function(n, callback) {
+  callback(null, n * 2);
+}
+
+var h = function(n, callback) {
+  callback(null, n - 2);
+}
+
+var i = function() {
+  async.waterfall([
+      // 如果第一个方法必须传参，这里需要这样处理
+      async.apply(f, 1),
+      g, h
+    ],
+    function(err, result) {
+      console.log('result: ', result);
+    });
+}
+
+i(); // result: 2
+```
+
+#### compose
+组合方法，它的作用是解决异步函数的传参调用，如：`f()`，`g()`，`h()` 三个函数需要实现这样的调用关系，`f(g(h()))`，如果是同步操作没有问题，但如果每个函数都是异步的话，就达不到预期的结果了，例如：
+
+```js
+...
+var j1 = function(n) {
+  setTimeout(function() {
+    return n + 1;
+  }, 10);
+}
+
+var k1 = function(n) {
+  setTimeout(function() {
+    return n * 2;
+  }, 10);
+}
+
+var l1 = function() {
+  var result = k1(j1());
+  console.log(result);
+}
+
+l1(); // undefined
+```
+
+因此，我们需要使用 compose 方法来组合它们：
+
+```js
+...
+var j = function(n, callback) {
+  setTimeout(function() {
+    callback(null, n + 1);
+  }, 10);
+}
+
+var k = function(n, callback) {
+  setTimeout(function() {
+    callback(null, n * 2);
+  }, 10);
+}
+
+var l = function() {
+  // 需要注意的是，compose 的参数顺序，需要将先最后做的放最前面，最先做的放最后
+  var fn = async.compose(k, j);
+  fn(4, function(err, result) {
+    console.log('result: ', result);
+  });
+}
+
+l(); // result: 10
+```

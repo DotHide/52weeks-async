@@ -87,4 +87,68 @@ var e = function() {
 }
 
 // d();
-e();
+// e();
+
+var f = function(n, callback) {
+  callback(null, n + 1);
+}
+
+var g = function(n, callback) {
+  callback(null, n * 2);
+}
+
+var h = function(n, callback) {
+  callback(null, n - 2);
+}
+
+var i = function() {
+  debugger;
+  async.waterfall([
+      async.apply(f, 1),
+      g, h
+    ],
+    function(err, result) {
+      console.log('result: ', result);
+    });
+}
+
+// i();
+
+var j = function(n, callback) {
+  setTimeout(function() {
+    callback(null, n + 1);
+  }, 10);
+}
+
+var j1 = function(n) {
+  setTimeout(function() {
+    return n + 1;
+  }, 10);
+}
+
+var k = function(n, callback) {
+  setTimeout(function() {
+    callback(null, n * 2);
+  }, 10);
+}
+
+var k1 = function(n) {
+  setTimeout(function() {
+    return n * 2;
+  }, 10);
+}
+
+var l = function() {
+  var fn = async.compose(k, j);
+  fn(4, function(err, result) {
+    console.log('result: ', result);
+  });
+}
+
+var l1 = function() {
+  var result = k1(j1());
+  console.log(result);
+}
+
+// l();
+l1();
